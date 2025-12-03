@@ -66,11 +66,16 @@ function setupAuthFormListeners() {
                 body: JSON.stringify({ username, email, password })
             });
             const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Registration failed');
+            if (!response.ok) {
+                const errorMsg = data.error || 'Registration failed';
+                throw new Error(errorMsg.includes('User with this email') ? 
+                    'Email already in use' : errorMsg);
+            }
             localStorage.setItem('token', data.token);
             initializeApp(data.token);
         } catch (err) {
             alert(err.message);
+            registerForm.reset();
         }
     });
 }

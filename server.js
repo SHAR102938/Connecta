@@ -120,7 +120,7 @@ async function getUserContacts(userId) {
             createdAt: contact.createdAt
         };
     }));
-    return contactDetails.filter(c => c !== null);
+    return contactDetails.filter(c => c !== null && c.userId === userId);
 }
 
 async function addContact(userId, contactId, contactName) {
@@ -344,8 +344,8 @@ io.on('connection', (socket) => {
 
   socket.on('send-message', async (data) => {
     const message = await saveMessage({ ...data, senderId: socket.userId, text: data.text });
-    io.to(data.receiverId).emit('receive-message', message);
-    io.to(socket.userId).emit('receive-message', message);
+    socket.to(data.receiverId).emit('receive-message', message);
+    socket.emit('receive-message', message);
   });
 
   socket.on('typing', (data) => {
