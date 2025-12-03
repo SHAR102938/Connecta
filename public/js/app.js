@@ -241,11 +241,24 @@ async function openChat(contact, token, userId, socket) {
     const messageInput = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
 
-    const sendMessage = () => {
+    const sendMessage = async () => {
         const message = messageInput.value;
         if (message.trim()) {
-            socket.emit('send-message', { receiverId: contact.contactId, message });
-            messageInput.value = '';
+            try {
+                const response = await fetch('/api/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ receiverId: contact.contactId, text: message })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Could not send message');
+                messageInput.value = '';
+            } catch (err) {
+                alert(err.message);
+            }
         }
     };
 
