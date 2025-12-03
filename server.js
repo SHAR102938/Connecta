@@ -6,8 +6,8 @@ const socketIo = require('socket.io');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
-const fs = require('fs');
 const path = require('path');
+const mongoose = require('mongoose');
 
 const app = express();
 const server = http.createServer(app);
@@ -18,79 +18,98 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- File Storage System ---
-const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir);
-}
+// --- Database Connection ---
+const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/connecta';
 
-function loadFromFile(filename) {
-  const filePath = path.join(dataDir, filename);
-  if (!fs.existsSync(filePath)) {
-    return [];
-  }
+const connectDB = async () => {
   try {
-    const data = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    return [];
+    await mongoose.connect(MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log('MongoDB Connected...');
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1); // Exit process with failure
   }
+};
+
+connectDB();
+
+// --- Mongoose Schemas and Models ---
+
+// Counter for unique user IDs
+const CounterSchema = new mongoose.Schema({
+  _id: { type: String, required: true },
+  seq: { type: Number, default: 10000000 }
+});
+const Counter = mongoose.model('Counter', CounterSchema);
+
+const UserSchema = new mongoose.Schema({
+  userId: { type: String, unique: true },
+  username: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  avatar: { type: String, default: '' },
+  status: { type: String, default: 'offline' },
+  lastSeen: { type: Date, default: Date.now }
+});
+const User = mongoose.model('User', UserSchema);
+
+const ContactSchema = new mongoose.Schema({
+  userId: { type: String, ref: 'User', required: true },
+  contactId: { type: String, ref: 'User', required: true },
+  contactName: { type: String },
+  createdAt: { type: Date, default: Date.now }
+});
+const Contact = mongoose.model('Contact', ContactSchema);
+
+const MessageSchema = new mongoose.Schema({
+  senderId: { type: String, required: true },
+  receiverId: { type: String, required: true },
+  text: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+const Message = mongoose.model('Message', MessageSchema);
+
+
+// --- Data Access Layer (MongoDB) ---
+
+async function getNextUserId() {
+    const counter = await Counter.findByIdAndUpdate(
+        { _id: 'userId' },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true }
+    );
+    return counter.seq.toString();
 }
 
-function saveToFile(filename, data) {
-  const filePath = path.join(dataDir, filename);
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-}
-
-function getNextUserId() {
-    const metadataPath = path.join(dataDir, 'metadata.json');
-    let metadata = { nextUserId: 10000000 };
-    if (fs.existsSync(metadataPath)) {
-        metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'));
-    }
-    const userId = metadata.nextUserId;
-    metadata.nextUserId++;
-    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
-    return userId.toString();
-}
-
-
-// --- Data Access Layer ---
 async function findUserByEmail(email) {
-  const users = loadFromFile('users.json');
-  return users.find(user => user.email === email);
+  return User.findOne({ email });
 }
 
 async function findUserByUserId(userId) {
-  const users = loadFromFile('users.json');
-  return users.find(user => user.userId === userId);
+  return User.findOne({ userId });
 }
 
 async function createUser(userData) {
-  const users = loadFromFile('users.json');
-  users.push(userData);
-  saveToFile('users.json', users);
-  return userData;
+  const newUser = new User(userData);
+  await newUser.save();
+  return newUser;
 }
 
 async function updateUserStatus(userId, status) {
-  const users = loadFromFile('users.json');
-  const user = users.find(u => u.userId === userId);
-  if (user) {
-    user.status = status;
-    user.lastSeen = new Date();
-    saveToFile('users.json', users);
-  }
-  return user;
+  return User.findOneAndUpdate(
+    { userId },
+    { status, lastSeen: new Date() },
+    { new: true }
+  );
 }
 
 async function getUserContacts(userId) {
-    const contacts = loadFromFile('contacts.json');
-    const users = loadFromFile('users.json');
-    const userContacts = contacts.filter(contact => contact.userId === userId);
-
-    const contactDetails = userContacts.map(contact => {
-        const contactUser = users.find(u => u.userId === contact.contactId);
+    const contacts = await Contact.find({ userId });
+    const contactDetails = await Promise.all(contacts.map(async (contact) => {
+        const contactUser = await User.findOne({ userId: contact.contactId });
         if (!contactUser) return null;
         return {
             _id: contact._id,
@@ -103,49 +122,33 @@ async function getUserContacts(userId) {
             lastSeen: contactUser.lastSeen,
             createdAt: contact.createdAt
         };
-    }).filter(contact => contact !== null);
-
-    return contactDetails;
+    }));
+    return contactDetails.filter(c => c !== null);
 }
 
 async function addContact(userId, contactId, contactName) {
-    const contacts = loadFromFile('contacts.json');
-    const existingContact = contacts.find(c => c.userId === userId && c.contactId === contactId);
+    const existingContact = await Contact.findOne({ userId, contactId });
     if (existingContact) {
         return existingContact;
     }
-    const newContact = {
-        _id: Math.random().toString(36).substr(2, 9),
-        userId,
-        contactId,
-        contactName,
-        createdAt: new Date()
-    };
-    contacts.push(newContact);
-    saveToFile('contacts.json', contacts);
+    const newContact = new Contact({ userId, contactId, contactName });
+    await newContact.save();
     return newContact;
 }
 
 async function getMessages(senderId, receiverId) {
-    const messages = loadFromFile('messages.json');
-    return messages
-        .filter(msg =>
-            (msg.senderId === senderId && msg.receiverId === receiverId) ||
-            (msg.senderId === receiverId && msg.receiverId === senderId)
-        )
-        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    return Message.find({
+        $or: [
+            { senderId, receiverId },
+            { senderId: receiverId, receiverId: senderId }
+        ]
+    }).sort({ createdAt: 'asc' });
 }
 
 async function saveMessage(messageData) {
-    const messages = loadFromFile('messages.json');
-    const message = {
-        _id: Math.random().toString(36).substr(2, 9),
-        ...messageData,
-        createdAt: new Date()
-    };
-    messages.push(message);
-    saveToFile('messages.json', messages);
-    return message;
+    const newMessage = new Message(messageData);
+    await newMessage.save();
+    return newMessage;
 }
 
 
@@ -164,19 +167,14 @@ app.post('/api/register', async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const userId = getNextUserId();
+    const userId = await getNextUserId();
 
-    const newUser = {
+    const savedUser = await createUser({
       username,
       email,
       password: hashedPassword,
       userId,
-      avatar: '',
-      status: 'offline',
-      lastSeen: new Date(),
-    };
-
-    const savedUser = await createUser(newUser);
+    });
 
     const token = jwt.sign({ userId: savedUser.userId, username: savedUser.username }, process.env.JWT_SECRET || 'your_jwt_secret', { expiresIn: '1h' });
 
@@ -190,6 +188,7 @@ app.post('/api/register', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Registration Error:', error);
     res.status(500).json({ error: 'Server error during registration' });
   }
 });
@@ -202,7 +201,6 @@ app.post('/api/login', async (req, res) => {
   }
 
   try {
-    console.log('Login attempt:', { email, password });
     const user = await findUserByEmail(email);
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -227,6 +225,7 @@ app.post('/api/login', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Login Error:', error);
     res.status(500).json({ error: 'Server error during login' });
   }
 });
@@ -253,12 +252,13 @@ app.get('/api/contacts', authMiddleware, async (req, res) => {
         const contacts = await getUserContacts(req.userId);
         res.json({ contacts });
     } catch (error) {
+        console.error('Get Contacts Error:', error);
         res.status(500).json({ error: 'Failed to load contacts' });
     }
 });
 
 app.post('/api/contacts', authMiddleware, async (req, res) => {
-    const { contactIdentifier, contactName } = req.body;
+    const { contactIdentifier } = req.body; // Assuming contactName is not used for now
     if (!contactIdentifier) {
         return res.status(400).json({ error: 'Contact identifier (user ID) is required' });
     }
@@ -271,9 +271,10 @@ app.post('/api/contacts', authMiddleware, async (req, res) => {
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
-        const contact = await addContact(req.userId, user.userId, contactName);
+        const contact = await addContact(req.userId, user.userId, user.username);
         res.status(201).json({ contact });
     } catch (error) {
+        console.error('Add Contact Error:', error);
         res.status(500).json({ error: 'Failed to add contact' });
     }
 });
@@ -283,6 +284,7 @@ app.get('/api/messages/:contactId', authMiddleware, async (req, res) => {
         const messages = await getMessages(req.userId, req.params.contactId);
         res.json({ messages });
     } catch (error) {
+        console.error('Get Messages Error:', error);
         res.status(500).json({ error: 'Failed to load messages' });
     }
 });
@@ -295,6 +297,7 @@ app.get('/api/search-user/:userId', authMiddleware, async (req, res) => {
         }
         res.json({ user: { userId: user.userId, username: user.username } });
     } catch (error) {
+        console.error('Search User Error:', error);
         res.status(500).json({ error: 'Search failed' });
     }
 });
@@ -323,7 +326,7 @@ io.on('connection', (socket) => {
   socket.broadcast.emit('user-status-changed', { userId: socket.userId, status: 'online' });
 
   socket.on('send-message', async (data) => {
-    const message = await saveMessage({ ...data, senderId: socket.userId });
+    const message = await saveMessage({ ...data, senderId: socket.userId, text: data.text });
     io.to(data.receiverId).emit('receive-message', message);
     io.to(socket.userId).emit('receive-message', message);
   });
@@ -350,4 +353,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { loadFromFile };
+module.exports = server; // Export server for testing purposes
