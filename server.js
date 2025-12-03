@@ -19,14 +19,11 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- Database Connection ---
-const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/connecta';
+const MONGO_URI = process.env.MONGODB_URI;
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await mongoose.connect(MONGO_URI);
     console.log('MongoDB Connected...');
   } catch (err) {
     console.error(err.message);
