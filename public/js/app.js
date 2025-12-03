@@ -142,6 +142,10 @@ function setupGlobalListeners(socket, userId, token) {
             messagesList.scrollTop = messagesList.scrollHeight;
         }
     });
+
+    socket.on('message-error', (error) => {
+        alert(`Message error: ${error.error}`);
+    });
 }
 
 async function loadContacts(token, userId, socket) {

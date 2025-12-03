@@ -343,9 +343,14 @@ io.on('connection', (socket) => {
   socket.broadcast.emit('user-status-changed', { userId: socket.userId, status: 'online' });
 
   socket.on('send-message', async (data) => {
-    const message = await saveMessage({ ...data, senderId: socket.userId, text: data.text });
-    socket.to(data.receiverId).emit('receive-message', message);
-    socket.emit('receive-message', message);
+    try {
+      const message = await saveMessage({ ...data, senderId: socket.userId, text: data.text });
+      socket.to(data.receiverId).emit('receive-message', message);
+      socket.emit('receive-message', message);
+    } catch (err) {
+      console.error('Message sending error:', err);
+      socket.emit('message-error', { error: 'Failed to send message' });
+    }
   });
 
   socket.on('typing', (data) => {
