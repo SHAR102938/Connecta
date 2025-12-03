@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        input { margin: 5px; padding: 8px; }
+        button { padding: 8px 15px; margin: 5px; cursor: pointer; }
+        #results { margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Chat App Test Interface</h1>
+    
+    <div class="test-section">
+        <h3>Demo Users Available:</h3>
+        <p><strong>User 1:</strong> demo1@example.com / password</p>
+        <p><strong>User 2:</strong> demo2@example.com / password</p>
+        <p><strong>User IDs:</strong> 12345678, 87654321</p>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test Login:</h3>
+        <input type="email" id="email" placeholder="Email" value="demo1@example.com">
+        <input type="password" id="password" placeholder="Password" value="password">
+        <button onclick="testLogin()">Test Login</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test API Endpoints:</h3>
+        <button onclick="testSearch()">Test User Search</button>
+        <button onclick="testGetUser()">Get Current User</button>
+        <button onclick="testGetContacts()">Get Contacts</button>
+    </div>
+    
+    <div id="results">
+        <h3>Test Results:</h3>
+        <div id="output">Ready to test...</div>
+    </div>
+
+    <script>
+        let authToken = '';
+        let currentUser = null;
+        
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : '';
+            output.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.token;
+                    currentUser = data.user;
+                    log(`✅ Login successful! Welcome ${data.user.username}`, 'success');
+                    log(`   Token: ${authToken.substring(0, 20)}...`);
+                    log(`   User ID: ${data.user.userId}`);
+                } else {
+                    log(`❌ Login failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testSearch() {
+            if (!authToken) {
+                log('❌ Please login first', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/users/search?query=demo', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Search successful! Found ${data.users.length} users`, 'success');
+                    data.users.forEach(user => {
+                        log(`   - ${user.username} (${user.email}) - ID: ${user.userId}`);
+                    });
+                } else {
+                    log(`❌ Search failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testGetUser() {
+            if (!authToken) {
+                log('❌ Please login first', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/user', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ User info retrieved!`, 'success');
+                    log(`   Username: ${data.user.username}`);
+                    log(`   Email: ${data.user.email}`);
+                    log(`   Status: ${data.user.status}`);
+                } else {
+                    log(`❌ Failed to get user: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testGetContacts() {
+            if (!authToken) {
+                log('❌ Please login first', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/contacts', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Contacts retrieved! Found ${data.contacts.length} contacts`, 'success');
+                    data.contacts.forEach(contact => {
+                        if (contact.contactId) {
+                            log(`   - ${contact.contactId.username} (${contact.contactId.userId})`);
+                        }
+                    });
+                } else {
+                    log(`❌ Failed to get contacts: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-login on page load
+        window.onload = function() {
+            log('🚀 Chat App Test Interface loaded!');
+            log('💡 Click "Test Login" to start testing');
+        };
+    </script>
+</body>
+</html>

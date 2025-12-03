@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Login Issues</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Login Issues</h1>
+    
+    <div class="debug-section info">
+        <h3>📋 System Status</h3>
+        <div id="system-status">Checking system status...</div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>🌐 Backend Connection Test</h3>
+        <button onclick="testBackendConnection()">Test Backend Connection</button>
+        <div id="backend-test-result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>🔑 Login Test</h3>
+        <input type="email" id="test-email" placeholder="Email" value="testuser@example.com">
+        <input type="password" id="test-password" placeholder="Password" value="testpass123">
+        <button onclick="testLogin()">Test Login</button>
+        <div id="login-test-result"></div>
+    </div>
+
+    <script>
+        function updateSystemStatus() {
+            const statusDiv = document.getElementById('system-status');
+            let status = '';
+            
+            const currentPort = window.location.port;
+            status += `<div>Frontend port: ${currentPort || '80'}</div>`;
+            status += `<div>Expected backend port: 3001</div>`;
+            status += `<div>Current URL: ${window.location.href}</div>`;
+            
+            statusDiv.innerHTML = status;
+        }
+
+        async function testBackendConnection() {
+            const resultDiv = document.getElementById('backend-test-result');
+            resultDiv.innerHTML = '<div class="info">Testing connection...</div>';
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: 'test@example.com', password: 'wrong' })
+                });
+                
+                if (response.status === 401) {
+                    resultDiv.innerHTML = '<div class="success">✅ Backend connection successful!</div>';
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Unexpected response: ${response.status}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Backend connection failed: ${error.message}</div>`;
+                console.error('Backend connection error:', error);
+            }
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('test-email').value;
+            const password = document.getElementById('test-password').value;
+            const resultDiv = document.getElementById('login-test-result');
+            
+            resultDiv.innerHTML = '<div class="info">Testing login...</div>';
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<div class="success">✅ Login successful!</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Login failed: ${data.error || 'Unknown error'}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Login error: ${error.message}</div>`;
+                console.error('Login test error:', error);
+            }
+        }
+
+        updateSystemStatus();
+        testBackendConnection();
+    </script>
+</body>
+</html>

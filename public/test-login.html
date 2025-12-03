@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>Login System Test</h1>
+    
+    <div class="test-section info">
+        <h3>Backend Status</h3>
+        <div id="backend-status">Checking backend...</div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test Login</h3>
+        <input type="email" id="test-email" placeholder="Email" value="testuser@example.com">
+        <input type="password" id="test-password" placeholder="Password" value="testpass123">
+        <button onclick="testLogin()">Test Login</button>
+        <div id="login-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test Registration</h3>
+        <input type="text" id="test-username" placeholder="Username" value="testuser2">
+        <input type="email" id="test-email-reg" placeholder="Email" value="testuser2@example.com">
+        <input type="password" id="test-password-reg" placeholder="Password" value="testpass123">
+        <button onclick="testRegister()">Test Register</button>
+        <div id="register-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Console Errors</h3>
+        <div id="console-errors">No errors detected</div>
+    </div>
+
+    <script>
+        // Override console.error to capture errors
+        const originalError = console.error;
+        const errors = [];
+        console.error = function(...args) {
+            errors.push(args.join(' '));
+            document.getElementById('console-errors').innerHTML = errors.join('<br>');
+            originalError.apply(console, args);
+        };
+
+        // Check backend status
+        fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: 'test@example.com', password: 'wrong' })
+        })
+        .then(response => {
+            document.getElementById('backend-status').innerHTML = 
+                response.status === 401 ? 'Backend is running (401 response expected)' : 'Backend responded with: ' + response.status;
+        })
+        .catch(error => {
+            document.getElementById('backend-status').innerHTML = 'Backend error: ' + error.message;
+        });
+
+        async function testLogin() {
+            const email = document.getElementById('test-email').value;
+            const password = document.getElementById('test-password').value;
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                const resultDiv = document.getElementById('login-result');
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = '<div class="success">Login successful! Token: ' + data.token.substring(0, 20) + '...</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="error">Login failed: ' + (data.error || 'Unknown error') + '</div>';
+                }
+            } catch (error) {
+                document.getElementById('login-result').innerHTML = '<div class="error">Error: ' + error.message + '</div>';
+            }
+        }
+
+        async function testRegister() {
+            const username = document.getElementById('test-username').value;
+            const email = document.getElementById('test-email-reg').value;
+            const password = document.getElementById('test-password-reg').value;
+            
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+                
+                const data = await response.json();
+                const resultDiv = document.getElementById('register-result');
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = '<div class="success">Registration successful! Token: ' + data.token.substring(0, 20) + '...</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="error">Registration failed: ' + (data.error || 'Unknown error') + '</div>';
+                }
+            } catch (error) {
+                document.getElementById('register-result').innerHTML = '<div class="error">Error: ' + error.message + '</div>';
+            }
+        }
+    </script>
+</body>
+</html>

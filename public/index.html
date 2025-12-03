@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connecta - Connect with Friends</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Landing Page -->
+    <div id="landing-page" class="page active">
+        <div class="landing-container">
+            <div class="landing-header">
+                <h1 class="app-title">Connecta</h1>
+                <p class="app-subtitle">Connect with friends and family instantly</p>
+            </div>
+            
+            <div class="auth-container">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" data-tab="login">Login</button>
+                    <button class="auth-tab" data-tab="register">Sign Up</button>
+                </div>
+                
+                <!-- Login Form -->
+                <div id="login-form" class="auth-form active">
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <input type="email" id="loginEmail" placeholder="Email" required>
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" id="loginPassword" placeholder="Password" required>
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <button type="submit" class="auth-btn">
+                            <span>Login</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Register Form -->
+                <div id="register-form" class="auth-form">
+                    <form id="registerForm">
+                        <div class="form-group">
+                            <input type="text" id="registerUsername" placeholder="Username" required>
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="form-group">
+                            <input type="email" id="registerEmail" placeholder="Email" required>
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" id="registerPassword" placeholder="Password" required>
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <button type="submit" class="auth-btn">
+                            <span>Sign Up</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="landing-features">
+            <div class="feature">
+                <i class="fas fa-bolt"></i>
+                <h3>Instant Messaging</h3>
+                <p>Send and receive messages in real-time</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-users"></i>
+                <h3>Easy Connections</h3>
+                <p>Add friends using their unique 8-digit ID</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-shield-alt"></i>
+                <h3>Secure & Private</h3>
+                <p>Your conversations are encrypted and safe</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Application -->
+    <div id="chat-app" class="page">
+        <div class="chat-container">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <div class="user-info">
+                        <div class="user-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="user-details">
+                            <h3 id="currentUserName"></h3>
+                            <p id="currentUserId"></p>
+                        </div>
+                    </div>
+                    <button id="logoutBtn" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+                
+                <div class="search-container">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Search by User ID">
+                        <button id="searchBtn">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="contacts-list" id="contactsList">
+                    <!-- Contacts will be populated here -->
+                </div>
+                
+                <button id="addContactBtn" class="add-contact-btn">
+                    <i class="fas fa-plus"></i>
+                    Add Contact
+                </button>
+            </div>
+            
+            <!-- Chat Area -->
+            <div class="chat-area">
+                <div class="chat-header" id="chatHeader" style="display: none;">
+                    <div class="chat-user-info">
+                        <div class="chat-user-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="chat-user-details">
+                            <h3 id="chatUserName"></h3>
+                            <p id="chatUserId"></p>
+                            <span class="status-indicator" id="chatUserStatus"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="welcome-screen" id="welcomeScreen">
+                    <div class="welcome-content">
+                        <i class="fas fa-comments"></i>
+                        <h2>Welcome to ChatApp</h2>
+                        <p>Select a contact to start chatting</p>
+                        <button id="startChatBtn" class="start-chat-btn">
+                            <i class="fas fa-plus"></i>
+                            Add Your First Contact
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="messages-container" id="messagesContainer" style="display: none;">
+                    <div class="messages-list" id="messagesList">
+                        <!-- Messages will be populated here -->
+                    </div>
+                    <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+                
+                <div class="message-input-container" id="messageInputContainer" style="display: none;">
+                    <div class="message-input">
+                        <input type="text" id="messageInput" placeholder="Type a message...">
+                        <button id="sendBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Contact Modal -->
+    <div id="addContactModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Contact</h3>
+                <button class="close-btn" id="closeModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <input type="text" id="contactIdentifier" placeholder="Enter 8-digit User ID">
+                </div>
+                <div class="form-group">
+                    <input type="text" id="contactName" placeholder="Contact Name (optional)">
+                </div>
+                <div id="searchResults" class="search-results"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="addContactConfirm" class="auth-btn">
+                    <span>Add Contact</span>
+                    <i class="fas fa-user-plus"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Loading...</p>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
