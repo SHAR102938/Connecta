@@ -132,7 +132,7 @@ function setupGlobalListeners(socket, userId, token) {
             const chatContactName = document.getElementById('chatUserName').textContent;
             const senderDisplayName = message.senderId === currentUserId ? 'Me' : chatContactName;
 
-            messageEl.textContent = `${senderDisplayName}: ${message.message}`;
+            messageEl.textContent = `${senderDisplayName}: ${message.text}`;
             messagesList.appendChild(messageEl);
             messagesList.scrollTop = messagesList.scrollHeight;
         }
@@ -231,7 +231,7 @@ async function openChat(contact, token, userId, socket) {
 
         data.messages.forEach(msg => {
             const messageEl = document.createElement('li');
-            messageEl.textContent = `${msg.senderId === userId ? 'Me' : contact.contactName}: ${msg.message}`;
+            messageEl.textContent = `${msg.senderId === userId ? 'Me' : contact.contactName}: ${msg.text}`;
             messagesList.appendChild(messageEl);
         });
     } catch (err) {
