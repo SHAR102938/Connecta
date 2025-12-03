@@ -73,12 +73,12 @@ const Message = mongoose.model('Message', MessageSchema);
 // --- Data Access Layer (MongoDB) ---
 
 async function getNextUserId() {
-    const counter = await Counter.findByIdAndUpdate(
-        { _id: 'userId' },
-        { $inc: { seq: 1 } },
-        { new: true, upsert: true }
-    );
-    return counter.seq.toString();
+    const randomId = Math.floor(10000000 + Math.random() * 90000000).toString();
+    const existingUser = await User.findOne({ userId: randomId });
+    if (existingUser) {
+        return getNextUserId();
+    }
+    return randomId;
 }
 
 async function findUserByEmail(email) {
@@ -283,6 +283,26 @@ app.get('/api/messages/:contactId', authMiddleware, async (req, res) => {
     } catch (error) {
         console.error('Get Messages Error:', error);
         res.status(500).json({ error: 'Failed to load messages' });
+    }
+});
+
+app.post('/api/messages', authMiddleware, async (req, res) => {
+    const { receiverId, text } = req.body;
+    if (!receiverId || !text) {
+        return res.status(400).json({ error: 'Receiver ID and text are required' });
+    }
+    try {
+        const message = await saveMessage({
+            senderId: req.userId,
+            receiverId,
+            text,
+        });
+        io.to(receiverId).emit('receive-message', message);
+        io.to(req.userId).emit('receive-message', message);
+        res.status(201).json({ message });
+    } catch (error) {
+        console.error('Send Message Error:', error);
+        res.status(500).json({ error: 'Failed to send message' });
     }
 });
 
